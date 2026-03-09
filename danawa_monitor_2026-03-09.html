@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다나와 광고 모니터링 리포트 - 2026-03-09</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background: #f5f7fa; color: #333; }
+
+        .header { background: linear-gradient(135deg, #1a237e, #283593); color: white; padding: 30px 40px; }
+        .header h1 { font-size: 24px; font-weight: 700; }
+        .header .subtitle { opacity: 0.8; margin-top: 8px; font-size: 14px; }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+
+        /* 통계 카드 */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .stat-card .number { font-size: 36px; font-weight: 700; margin: 8px 0; }
+        .stat-card .label { color: #666; font-size: 13px; }
+        .stat-card.total .number { color: #1a237e; }
+        .stat-card.abnormal .number { color: #c62828; }
+        .stat-card.warning .number { color: #f57f17; }
+        .stat-card.normal .number { color: #2e7d32; }
+
+        /* 필터 탭 */
+        .filter-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .filter-tab { padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; border: 2px solid transparent; transition: all 0.2s; }
+        .filter-tab.active { background: #1a237e; color: white; }
+        .filter-tab:not(.active) { background: white; color: #555; border-color: #ddd; }
+        .filter-tab:hover:not(.active) { border-color: #1a237e; color: #1a237e; }
+
+        /* 리포트 테이블 */
+        .report-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .report-table table { width: 100%; border-collapse: collapse; }
+        .report-table th { background: #1a237e; color: white; padding: 14px 16px; text-align: left; font-size: 13px; font-weight: 600; }
+        .report-table td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
+        .report-table tr:hover td { background: #f8f9ff; }
+        .report-table tr:last-child td { border-bottom: none; }
+
+        /* 상태 배지 */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-danger { background: #ffebee; color: #c62828; }
+        .badge-warning { background: #fffde7; color: #f57f17; }
+        .badge-success { background: #e8f5e9; color: #2e7d32; }
+        .badge-info { background: #e3f2fd; color: #1565c0; }
+
+        /* URL 링크 */
+        .url-link { color: #1565c0; text-decoration: none; font-size: 12px; word-break: break-all; }
+        .url-link:hover { text-decoration: underline; }
+
+        /* 클릭 변화 */
+        .click-change { font-weight: 600; }
+        .click-change.down { color: #c62828; }
+        .click-change.up { color: #2e7d32; }
+        .click-change.zero { color: #c62828; }
+
+        /* 광고 영역 체크 */
+        .zone-check { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .zone-item { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .zone-ok { background: #e8f5e9; color: #2e7d32; }
+        .zone-fail { background: #ffebee; color: #c62828; }
+        .zone-unknown { background: #f5f5f5; color: #757575; }
+
+        /* 키워드 셀 */
+        .keyword-cell { font-weight: 600; color: #1a237e; font-size: 14px; }
+        .category-cell { color: #666; font-size: 12px; margin-top: 4px; line-height: 1.4; }
+        .device-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; }
+        .device-pc { background: #e3f2fd; color: #1565c0; }
+        .device-mobile { background: #fce4ec; color: #880e4f; }
+
+        /* 이상 이유 */
+        .anomaly-reason { background: #fff8e1; border-left: 3px solid #ffc107; padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-top: 4px; }
+
+        /* AI 분석 요약 */
+        .ai-summary { max-width: 250px; font-size: 12px; line-height: 1.5; }
+
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; }
+
+        /* 스크린샷 썸네일 */
+        .screenshot-thumb { width: 80px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ddd; }
+
+        /* 모달 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+        .modal-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📊 다나와 광고 모니터링 리포트</h1>
+    <div class="subtitle">기준일: 2026-03-09 | 생성일시: 2026-03-09 14:55:44 | 파워쇼핑 / 파워쇼핑 신규 구좌 / 애드스마트 광고 영역 분석</div>
+</div>
+
+<div class="container">
+
+    <!-- 통계 카드 -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="label">📋 총 모니터링 키워드</div>
+            <div class="number">20</div>
+        </div>
+        <div class="stat-card abnormal">
+            <div class="label">🚨 이상 감지</div>
+            <div class="number">20</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="label">⚠️ 확인 필요</div>
+            <div class="number">0</div>
+        </div>
+        <div class="stat-card normal">
+            <div class="label">✅ 정상</div>
+            <div class="number">0</div>
+        </div>
+    </div>
+
+    <!-- 결과 테이블 -->
+    <div class="report-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>구분</th>
+                    <th>키워드 / 카테고리</th>
+                    <th>이상 이유</th>
+                    <th>클릭 변화</th>
+                    <th>애드스마트대체비율</th>
+                    <th>AI 분석 결과</th>
+                    <th>광고 영역 상태<br><small style="font-weight:400;opacity:.8">①파워쇼핑 ②신규구좌 ③애드스마트</small></th>
+                    <th>URL</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            <tr>
+                <td style="font-weight:600;color:#999">1</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">브레이크패드</div>
+                    <div class="category-cell">자동차/용품/공구 > 부품/외장/안전 > 브레이크패드</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">8471.4%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 8471%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EB%B8%8C%EB%A0%88%EC%9D%B4%ED%81%AC%ED%8C%A8%EB%93%9C" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EB%B8...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">2</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">플스5</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 게임기/게이밍가구 > 플레이스테이션5/4 > ps4 본체</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">5305.4%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 5305%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%ED%94%8C%EC%8A%A45" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%ED%94...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">3</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">사무용책상</div>
+                    <div class="category-cell">가구/조명 > 책상/책장 > 학원/사무용책상 > 사무용책상</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">4095.8%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 4096%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%82%AC%EB%AC%B4%EC%9A%A9%EC%B1%85%EC%83%81" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%82...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">4</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">플레이스테이션</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 게임기/게이밍가구 > 구형 콘솔 > psp</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">3492.8%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 3493%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%ED%94...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">5</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">닌텐도스위치2</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 게임기/게이밍가구 > 닌텐도 스위치2 > 주변기기</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">3492.8%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 3493%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EB%8B%8C%ED%85%90%EB%8F%84%EC%8A%A4%EC%9C%84%EC%B9%982" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EB%8B...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">6</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">스마트폰필름</div>
+                    <div class="category-cell">태블릿/모바일/디카 > 케이스/필름/터치펜 > 스마트폰 필름</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">2940.9%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 2941%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%8A%A4%EB%A7%88%ED%8A%B8%ED%8F%B0%ED%95%84%EB%A6%84" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%8A...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">7</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">골드바</div>
+                    <div class="category-cell">패션/잡화/뷰티 > 순금/쥬얼리 > 12간지 띠별 순금</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">2900.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 2900%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EA%B3%A8%EB%93%9C%EB%B0%94" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EA%B3...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">8</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">전동킥보드</div>
+                    <div class="category-cell">스포츠/골프 > 자전거/전동킥보드 > 전동킥보드/전동휠 > 전동킥보드</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">2703.7%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 2704%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%A0%84%EB%8F%99%ED%82%A5%EB%B3%B4%EB%93%9C" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%A0...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">9</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">세탁용품</div>
+                    <div class="category-cell">가전/tv > 세탁기/건조기 > 세탁용품/클리닝 > 세탁용품</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">2300.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 2300%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%84%B8%ED%83%81%EC%9A%A9%ED%92%88" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%84...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">10</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">테스터기</div>
+                    <div class="category-cell">자동차/용품/공구 > 측정공구/수공구 > 전기/테스터기</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1997.9%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1998%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%ED%85%8C%EC%8A%A4%ED%84%B0%EA%B8%B0" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%ED%85...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">11</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">지포스 rtx 5060</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 주요부품 > rtx 50 신제품 > 5060 호환 부품</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1997.9%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1998%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%A7%80%ED%8F%AC%EC%8A%A4%20rtx%205060" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%A7...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">12</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">갤럭시</div>
+                    <div class="category-cell">태블릿/모바일/디카 > 휴대폰/스마트폰 > 해외구매 > 삼성 갤럭시</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1900.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1900%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EA%B0%A4%EB%9F%AD%EC%8B%9C" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EA%B0...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">13</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">각티슈</div>
+                    <div class="category-cell">생활/주방/건강 > 화장지/생리대 > 각티슈/휴대용티슈 > 각티슈/미용티슈</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1701.8%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1702%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EA%B0%81%ED%8B%B0%EC%8A%88" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EA%B0...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">14</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">여성향수</div>
+                    <div class="category-cell">패션/잡화/뷰티 > 메이크업/향수 > 향수 > 여성용</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1568.2%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1568%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%97%AC%EC%84%B1%ED%96%A5%EC%88%98" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%97...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">15</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">닌텐도스위치</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 게임기/게이밍가구 > 닌텐도 스위치 > 콘텐츠 이용권</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1400.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1400%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EB%8B%8C%ED%85%90%EB%8F%84%EC%8A%A4%EC%9C%84%EC%B9%98" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EB%8B...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">16</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">m4 맥북</div>
+                    <div class="category-cell">컴퓨터/노트북/조립pc > 노트북 > apple 맥북 > m4 맥북</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1305.2%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1305%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=m4%20%EB%A7%A5%EB%B6%81" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=m4%20%...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">17</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">액체세제</div>
+                    <div class="category-cell">생활/주방/건강 > 세제/섬유유연제 > 세탁세제 > 액체세제</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1251.4%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1251%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%95%A1%EC%B2%B4%EC%84%B8%EC%A0%9C" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%95...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">18</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">킥보드 안장</div>
+                    <div class="category-cell">스포츠/골프 > 자전거/전동킥보드 > 전동킥보드/전동휠 > 배터리/부품</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1100.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1100%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%ED%82%A5%EB%B3%B4%EB%93%9C%20%EC%95%88%EC%9E%A5" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%ED%82...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">19</td>
+                <td style="text-align:center">
+                    <span class="badge badge-danger" style="font-size:13px;padding:5px 12px">HG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">박스테이프</div>
+                    <div class="category-cell">반려동물/취미/사무 > 파일/사무용품 > 테이프/디스펜서</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1100.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1100%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EB%B0%95%EC%8A%A4%ED%85%8C%EC%9D%B4%ED%94%84" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EB%B0...</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600;color:#999">20</td>
+                <td style="text-align:center">
+                    <span class="badge badge-info" style="font-size:13px;padding:5px 12px">SG</span>
+                </td>
+                <td>
+                    <div class="keyword-cell">여성지갑</div>
+                    <div class="category-cell">패션/잡화/뷰티 > 명품관 > 지갑/벨트 > 여성 지갑</div>
+                    <span class="device-badge device-pc">🖥️ pc</span>
+                </td>
+                <td>
+                    <div class="anomaly-reason">📊 금일클릭=0 (전일데이터없음)</div>
+                </td>
+                <td>
+                    <div>0</div>
+                    <div><span class="click-change zero">→ 0</span></div>
+                </td>
+                <td><span style="color:#c62828;font-weight:600">1100.0%</span></td>
+                <td>
+                    <span class="badge badge-danger">이상</span>
+                    <div class="ai-summary" style="margin-top:6px">광고영역 미감지: ['top_recommend', 'power_shopping', 'bottom_recommend'] | 상품 수 부족: 0개 | 빈슬롯 비율 매우 높음: 1100%</div>
+                </td>
+                <td><div class="zone-check"><span class="zone-item zone-fail">❌ 파워쇼핑</span><span class="zone-item zone-fail">❌ 파워쇼핑 신규 구좌</span><span class="zone-item zone-fail">❌ 애드스마트</span><span class="zone-item zone-fail">🔄 애드스마트 대체중</span></div></td>
+                <td>
+                    <a href="https://search.danawa.com/dsearch.php?query=%EC%97%AC%EC%84%B1%EC%A7%80%EA%B0%91" target="_blank" class="url-link">https://search.danawa.com/dsearch.php?query=%EC%97...</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 분석 기준 설명 -->
+    <div style="background:white;border-radius:12px;padding:24px;margin-top:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <h3 style="color:#1a237e;margin-bottom:16px">📌 모니터링 기준</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;font-size:13px;color:#555">
+            <div>
+                <strong>필터링 조건</strong><br>
+                • UI카테고리 제외: 결과없음, 쿠팡로켓배송관<br>
+                • 빈슬롯 채운 상품 수(평균) ≥ 3<br>
+                • <b>애드스마트 대체 비율 ≥ 50%</b>
+            </div>
+            <div>
+                <strong>이상 감지 기준</strong><br>
+                • 전일 클릭 존재 → 금일 클릭 0<br>
+                • 전일 대비 클릭 변화율 ≤ -50%<br>
+                • AI 분석: 광고 영역 미표시, 키워드 부적합
+            </div>
+            <div>
+                <strong>광고 3영역 정의</strong><br>
+                ① <b>파워쇼핑</b>: 상단 "이런 상품 어때요?" 가로형<br>
+                ② <b>파워쇼핑 신규 구좌</b>: 목록 내 광고(AD) 라벨 상품<br>
+                ③ <b>애드스마트</b>: 하단 "오늘 봐야 할 추천 상품"
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">
+    다나와 광고 모니터링 자동화 시스템 | 생성: 2026-03-09 14:55:44
+</div>
+
+<!-- 스크린샷 모달 -->
+<div class="modal" id="imgModal" onclick="this.classList.remove('active')">
+    <span class="modal-close">✕</span>
+    <img class="modal-img" id="modalImg" src="" alt="">
+</div>
+
+<script>
+function showImg(src) {{
+    document.getElementById('modalImg').src = src;
+    document.getElementById('imgModal').classList.add('active');
+}}
+
+// 필터 탭 기능
+document.querySelectorAll('.filter-tab').forEach(tab => {{
+    tab.addEventListener('click', function() {{
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    }});
+}});
+</script>
+</body>
+</html>
